@@ -128,12 +128,11 @@ final class UserColumns {
 	 */
 	public function set_users_column_titles( $columns ): array {
 		// $columns['user_id'] = 'User ID';
-		$order                                = ( @$_REQUEST['ts_all'] == 'DESC' ) ? 'ASC' : 'DESC'; // phpcs:ignore
+		$order                                = ( ($_REQUEST["ts_all"] ?? null) == 'DESC' ) ? 'ASC' : 'DESC'; // phpcs:ignore
 		$columns[ Base::MEMBER_LV_POST_TYPE ] = '會員等級';
 		$columns['total_order_amount']        = "<a title='用戶註冊後至今累積總消費金額' href='?ts_all={$order}'>全部</a>";
-
 		for ($i = 0; $i < $this->order_history; $i++) {
-			$order    = ( @$_REQUEST[ "ts{$i}" ] == 'DESC' ) ? 'ASC' : 'DESC'; // phpcs:ignore
+			$order    = ( ($_REQUEST["ts{$i}"] ?? null) == 'DESC' ) ? 'ASC' : 'DESC'; // phpcs:ignore
 			$the_date = date('Y年m', strtotime("-{$i} month"));
 			// $month = current_time('m') - $i;
 			$columns[ "ts{$i}" ] = "<a title='{$the_date} 月累積採購金額' href='?ts{$i}={$order}'>{$the_date} 月</a>";
@@ -153,8 +152,9 @@ final class UserColumns {
 	public function set_users_column_values( $default_value, $column_name, $user_id ) {
 		for ($i = 0; $i < $this->order_history; $i++) {
 			if ($column_name == "ts{$i}") {
-				$order_data = Base::get_order_data_by_user_date($user_id, $i);
-
+				$order_data = Base::get_order_data_by_user_date($user_id, $i, [], '', true);
+				// 更新月份消費金額
+				\update_user_meta($user_id, '_total_sales_in_' . $i . '_months_ago', $order_data['total']);
 				if (!$order_data['user_is_registered']) {
 					return '<span class="bg-gray-200 px-2 py-1 rounded-md text-xs">當時尚未註冊</span>';
 				}
@@ -188,7 +188,8 @@ final class UserColumns {
 				'status'      => [ 'wc-completed', 'wc-processing' ],
 			];
 			$order_data = Base::get_order_data_by_user_date($user_id, 0, $args);
-
+			// 更新總消費金額
+			\update_user_meta($user_id, '_total_sales_in_life', $order_data['total']);
 			$html = $order_data['total'] . '<br>訂單' . $order_data['order_num'] . '筆';
 			return $html;
 		}
@@ -257,7 +258,6 @@ final class UserColumns {
 						'compare' => '=',
 					],
 				];
-
 				$query->set('meta_query', $meta_query);
 			}
 		}

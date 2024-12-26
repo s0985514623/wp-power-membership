@@ -24,7 +24,7 @@ abstract class Base {
 
 	/**
 		 * 處理會員升級相關邏輯
-		 *     _gamipress_member_lv_rank: 1026 (會員等級的 post id)
+		 * _gamipress_member_lv_rank: 1026 (會員等級的 post id)
 		 * _gamipress_member_lv_previous_rank: 1020 (會員等級的 post id)
 		 * _gamipress_member_lv_rank_earned_time: 1704704213 (秒)
 		 */
@@ -38,18 +38,20 @@ abstract class Base {
 	 *
 	 * @see https://wisdmlabs.com/blog/query-posts-or-comments-by-date-time/
 	 *
-	 * @param int    $user_id 用戶 ID
-	 * @param int    $months_ago 過去幾個月
-	 * @param array  $args 參數
-	 * @param string $transient_key 暫存鍵
+	 * @param int     $user_id 用戶 ID
+	 * @param int     $months_ago 過去幾個月
+	 * @param array   $args 參數
+	 * @param string  $transient_key 暫存鍵
+	 * @param boolean $by_month 是否按月份查詢
 	 * @return array
 	 */
-	public static function get_order_data_by_user_date( int $user_id, int $months_ago = 0, array $args = [], string $transient_key = '' ): array {
+	public static function get_order_data_by_user_date( int $user_id, int $months_ago = 0, array $args = [], string $transient_key = '', bool $by_month = false ): array {
+		// TODO 記得開回來
 		// get transient
-		$key        = self::get_transient_key($user_id, $months_ago, $transient_key);
-		$order_data = \get_transient($key);
+		// $key        = self::get_transient_key($user_id, $months_ago, $transient_key);
+		// $order_data = \get_transient($key);
 		if (empty($order_data)) {
-			$order_data = self::query_order_data_by_user_date($user_id, $months_ago, $args, $transient_key);
+			$order_data = self::query_order_data_by_user_date($user_id, $months_ago, $args, $transient_key, $by_month);
 		}
 
 		return $order_data;
@@ -58,32 +60,39 @@ abstract class Base {
 	/**
 	 * 查詢用戶訂單數據
 	 *
-	 * @param int    $user_id 用戶 ID
-	 * @param int    $months_ago 過去幾個月
-	 * @param array  $args 參數
-	 * @param string $transient_key 暫存鍵
+	 * @param int     $user_id 用戶 ID
+	 * @param int     $months_ago 過去幾個月
+	 * @param array   $args 參數
+	 * @param string  $transient_key 暫存鍵
+	 * @param boolean $by_month 是否按月份查詢
 	 * @return array
 	 */
-	public static function query_order_data_by_user_date( int $user_id, int $months_ago = 0, array $args = [], string $transient_key = '' ): array {
+	public static function query_order_data_by_user_date( int $user_id, int $months_ago = 0, array $args = [], string $transient_key = '', bool $by_month = false ): array {
 		$user       = get_userdata($user_id);
 		$that_date  = strtotime('first day of -' . $months_ago . ' month', time());
 		$start_date = \wp_date('Y-m-d', $that_date);
-		$end_date   = \wp_date('Y-m-d');
+		if ($by_month) {
+			$end_date = \wp_date('Y-m-d', strtotime('last day of this month', $that_date));
+		} else {
+			$end_date = \wp_date('Y-m-d');
+		}
+		// $end_date = \wp_date('Y-m-d');
 
 		$user_registed_time = strtotime($user->data->user_registered);
 		$is_registered      = ( $user_registed_time >= $that_date ) ? false : true;
 
 		if (empty($args)) {
 			$args = [
-				'limit'       => -1,
-				'customer_id' => $user_id,
-				'status'      => [ 'wc-completed', 'wc-processing', 'wc-withdrawal-paid' ],
-				'date_paid'   => "{$start_date}...{$end_date}", // YYYY-MM-DD...YYYY-MM-DD
+				'limit'        => -1,
+				'customer_id'  => $user_id,
+				'status'       => [ 'wc-completed', 'wc-processing', 'wc-withdrawal-paid' ],
+				'date_created' => "{$start_date}...{$end_date}", // YYYY-MM-DD...YYYY-MM-DD
 			];
 		}
 
 		$customer_orders = \wc_get_orders($args);
-		$total           = 0;
+
+		$total = 0;
 		foreach ($customer_orders as $customer_order) {
 			$order  = wc_get_order($customer_order);
 			$total += $order->get_total();
