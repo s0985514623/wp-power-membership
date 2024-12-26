@@ -61,7 +61,7 @@ final class Plugin {
 
 		$this->init(
 			[
-				'app_name'    => 'power-membership',
+				'app_name'    => 'power membership',
 				'github_repo' => 'https://github.com/j7-dev/wp-power-membership',
 				'callback'    => [ Bootstrap::class, 'instance' ],
 			]

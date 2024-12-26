@@ -50,7 +50,6 @@ final class Ui {
 	public function menu_page(): void {
 		\remove_menu_page('gamipress');
 		\remove_menu_page('gamipress_ranks');
-
 		\add_submenu_page(
 			'users.php',
 			__('會員等級', 'power_membership'),
@@ -78,3 +77,5 @@ final class Ui {
 		// \remove_meta_box('gamipress-wc-product-points', 'product', 'side');
 	}
 }
+
+Ui::instance();
