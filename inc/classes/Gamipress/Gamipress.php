@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace J7\PowerMembership\Gamipress;
 
 use J7\PowerMembership\Plugin;
+use J7\PowerMembership\Utils\Base;
 
 /**
  * 註冊 GamiPress 事件
@@ -37,7 +38,7 @@ final class GamiPress {
 	 */
 	public function __construct() {
 		\add_filter( 'gamipress_activity_triggers', [ __CLASS__, 'register_triggers' ] );
-		\add_action('gamipress_requirement_ui_html_after_limit', [ __CLASS__, 'render_field' ], 10, 2);
+		\add_action('gamipress_requirement_ui_html_after_limit', [ __CLASS__, 'render_field_to_member_lv' ], 10, 2);
 
 		\add_filter( 'gamipress_requirement_object', [ __CLASS__, 'requirement_object' ], 10, 2 );
 		\add_action( 'gamipress_ajax_update_requirement', [ __CLASS__, 'ajax_update_requirement' ], 10, 2 );
@@ -161,7 +162,62 @@ final class GamiPress {
 		$end_time[1]
 		);
 	}
+	/**
+	 * 渲染會員等級欄位
+	 *
+	 * @param int $requirement_id 需求 ID
+	 * @param int $requirement 需求
+	 * @return void
+	 */
+	public static function render_field_to_member_lv( int $requirement_id, int $requirement ): void {
+		$ratio_key              = self::RATIO_KEY;
+		$selected_ratio         = \get_post_meta( $requirement_id, $ratio_key, true );
+		$member_lv_key          = Base::MEMBER_LV_POST_TYPE;
+		$selected_member_lv_key = \get_post_meta( $requirement_id, $member_lv_key, true );
 
+		$member_lvs = get_posts(
+			[
+				'post_type'      => Base::MEMBER_LV_POST_TYPE,
+				'posts_per_page' => -1,
+				'post_status'    => 'publish',
+				'orderby'        => 'menu_order',
+				'order'          => 'ASC',
+			]
+			);
+
+		$options = '';
+		foreach ( $member_lvs as $member_lv ) {
+			$options .= sprintf(
+				'<option value="%1$s" %2$s>%3$s</option>',
+			$member_lv->ID,
+			\selected( $member_lv->ID, $selected_member_lv_key, false ),
+			$member_lv->post_title
+				);
+		}
+		printf(
+			/*html*/'
+			<div class="%1$s-row">
+					<label for="%1$s-%2$d">會員等級</label>
+					<div style="display:inline" class="%1$s ">
+							<select id="%1$s-%2$d">
+								%3$s
+							</select>
+					</div>
+			</div>
+			<div class="%4$s-row">
+					<label for="%4$s-%2$d">每滿多少錢</label>
+					<div style="display:inline" class="%4$s">
+					<input type="number" name="%4$s" id="%4$s-%2$d" class="points" value="%5$s">
+					</div>
+			</div>
+			',
+			$member_lv_key,
+			$requirement_id,
+			$options,
+			$ratio_key,
+			$selected_ratio,
+			);
+	}
 
 	/**
 	 * Enqueue admin scripts
@@ -202,7 +258,8 @@ final class GamiPress {
 		// Expiration fields
 		$requirement[ self::WEEK_DAY_KEY ] = \gamipress_get_post_meta( $requirement_id, self::WEEK_DAY_KEY, true );
 		$requirement[ self::RATIO_KEY ]    = \absint( \gamipress_get_post_meta( $requirement_id, self::RATIO_KEY, true ) );
-
+		// Add Member LV field
+		$requirement[ Base::MEMBER_LV_POST_TYPE ] = \gamipress_get_post_meta( $requirement_id, Base::MEMBER_LV_POST_TYPE, true );
 		return $requirement;
 	}
 
@@ -213,12 +270,13 @@ final class GamiPress {
 	 * @param array<string, mixed> $requirement 需求
 	 */
 	public static function ajax_update_requirement( $requirement_id, $requirement ) {
-
 		// Save expiration fields field
-		\gamipress_update_post_meta( $requirement_id, self::WEEK_DAY_KEY, $requirement[ self::WEEK_DAY_KEY ] );
-		\gamipress_update_post_meta( $requirement_id, self::WEEK_DAY_START_TIME_KEY, $requirement[ self::WEEK_DAY_START_TIME_KEY ] );
-		\gamipress_update_post_meta( $requirement_id, self::WEEK_DAY_END_TIME_KEY, $requirement[ self::WEEK_DAY_END_TIME_KEY ] );
+		// \gamipress_update_post_meta( $requirement_id, self::WEEK_DAY_KEY, $requirement[ self::WEEK_DAY_KEY ] );
+		// \gamipress_update_post_meta( $requirement_id, self::WEEK_DAY_START_TIME_KEY, $requirement[ self::WEEK_DAY_START_TIME_KEY ] );
+		// \gamipress_update_post_meta( $requirement_id, self::WEEK_DAY_END_TIME_KEY, $requirement[ self::WEEK_DAY_END_TIME_KEY ] );
 		\gamipress_update_post_meta( $requirement_id, self::RATIO_KEY, absint( $requirement[ self::RATIO_KEY ] ) );
+		// Save Member LV field
+		\gamipress_update_post_meta( $requirement_id, Base::MEMBER_LV_POST_TYPE, $requirement[ Base::MEMBER_LV_POST_TYPE ] );
 	}
 
 
@@ -245,7 +303,6 @@ final class GamiPress {
 		}
 
 		$total_award_points = (int) $order->get_meta('gained_award_points');
-
 		// 如果已經發放過購物金，就不再發放
 		if (!!$total_award_points) {
 			return;
@@ -253,9 +310,11 @@ final class GamiPress {
 
 		$order_total        = $order->get_total();
 		$order_created_time = $order->get_date_created();
+		$customer_id        = $order->get_customer_id();
 
-		$trigger_ids = self::get_trigger_ids($order_created_time?->date_i18n('H:i'));
-
+		// TODO 這邊改成新的get_member_trigger_ids()
+		// $trigger_ids = self::get_trigger_ids($order_created_time?->date_i18n('H:i'));
+		$trigger_ids = self::get_member_trigger_ids( (string) $customer_id);
 		$total_award_points = 0;
 		foreach ($trigger_ids as $trigger_id) {
 			$points = \gamipress_get_post_meta($trigger_id, '_gamipress_points', true);
@@ -334,7 +393,47 @@ final class GamiPress {
 
 		return $trigger_ids;
 	}
+	/**
+	 * TODO 取得符合會員條件的 trigger_ids
+	 *
+	 * @param string $member_id 會員ID
+	 * @return array<int>
+	 */
+	public static function get_member_trigger_ids( string $member_id ): array {
 
+		// 購物金規則Post
+		$trigger_ids = \get_posts(
+			[
+				'post_type'   => 'points-award',
+				'post_status' => 'publish',
+				'meta_key'    => '_gamipress_trigger_type',
+				'meta_value'  => 'pm_award_by_order_amount',
+				'fields'      => 'ids',
+			]
+			);
+		// 會員等級
+		$member_lv = \get_user_meta($member_id, Base::CURRENT_MEMBER_LV_META_KEY, true);
+
+		$trigger_ids = \array_filter(
+			$trigger_ids,
+			function ( $trigger_id ) use ( $member_lv ) {
+				$points = \gamipress_get_post_meta($trigger_id, '_gamipress_points', true);
+				$ratio  = \gamipress_get_post_meta($trigger_id, self::RATIO_KEY, true);
+
+				$missing_data = !$points || !$ratio;
+
+				if ($missing_data) {
+					return false;
+				}
+
+				$member_lv_key          = Base::MEMBER_LV_POST_TYPE;
+				$selected_member_lv_key = \get_post_meta( $trigger_id, $member_lv_key, true );
+
+				return $selected_member_lv_key === $member_lv;
+			}
+			);
+		return $trigger_ids;
+	}
 	/**
 	 * 訂單取消或退款時，歸還購物金
 	 *
@@ -415,7 +514,9 @@ final class GamiPress {
 	public static function display_award_points_text(): void {
 		$cart_total         = (float) \WC()->cart->get_total('edit');
 		$total_award_points = 0;
-		$trigger_ids        = self::get_trigger_ids(\wp_date('H:i'));
+		// TODO 這邊改成新的get_member_trigger_ids()
+		// $trigger_ids = self::get_trigger_ids(\wp_date('H:i'));
+		$trigger_ids = self::get_member_trigger_ids( (string) \get_current_user_id());
 
 		foreach ($trigger_ids as $trigger_id) {
 			$points = (float) \gamipress_get_post_meta($trigger_id, '_gamipress_points', true);

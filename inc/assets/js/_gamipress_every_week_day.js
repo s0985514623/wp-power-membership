@@ -13,20 +13,21 @@
 
 	$('.requirements-list').on('update_requirement_data', '.requirement-row', function (e, requirement_details, requirement) {
 		// Add expiration fields
-		requirement_details._gamipress_every_week_day = requirement.find('select[id^="_gamipress_every_week_day"]').val();
+		// requirement_details._gamipress_every_week_day = requirement.find('select[id^="_gamipress_every_week_day"]').val();
 
-		const startHour = requirement.find('.start_time input[name="hour"]').val();
-		const startMinute = requirement.find('.start_time input[name="minute"]').val();
-		requirement_details._gamipress_every_week_day_start_time = (startHour ? startHour.padStart(2, '0') : '00') + ':' + (startMinute ? startMinute.padStart(2, '0') : '00');
+		// const startHour = requirement.find('.start_time input[name="hour"]').val();
+		// const startMinute = requirement.find('.start_time input[name="minute"]').val();
+		// requirement_details._gamipress_every_week_day_start_time = (startHour ? startHour.padStart(2, '0') : '00') + ':' + (startMinute ? startMinute.padStart(2, '0') : '00');
 
-		const endHour = requirement.find('.end_time input[name="hour"]').val();
-		const endMinute = requirement.find('.end_time input[name="minute"]').val();
-		requirement_details._gamipress_every_week_day_end_time = (endHour ? endHour.padStart(2, '0') : '00') + ':' + (endMinute ? endMinute.padStart(2, '0') : '00');
+		// const endHour = requirement.find('.end_time input[name="hour"]').val();
+		// const endMinute = requirement.find('.end_time input[name="minute"]').val();
+		// requirement_details._gamipress_every_week_day_end_time = (endHour ? endHour.padStart(2, '0') : '00') + ':' + (endMinute ? endMinute.padStart(2, '0') : '00');
 
 		requirement_details._gamipress_ratio = requirement.find('._gamipress_ratio input').val();
 		requirement_details.points = requirement.find('input[name="requirement-points"]').val();
-
-
+		//Add member level field
+		requirement_details.member_lv = requirement.find('select[id^="member_lv"]').val();
+		// console.log(requirement_details);
 	});
 
 
