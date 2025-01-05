@@ -32,7 +32,11 @@ final class Metabox {
 	public function __construct() {
 		\add_action('add_meta_boxes', [ $this, 'add_metabox' ], 10);
 		\add_action('save_post', [ $this, 'save_metabox' ], 10, 2);
-		\add_action('init', [ $this, 'create_default_member_lv' ], 30);
+
+		// 會重複創建是因為在 init 後才會有 post type,改成在wp_loaded 後執行
+		// \add_action('init', [ $this, 'create_default_member_lv' ], 30);
+		\add_action('wp', [ $this, 'create_default_member_lv' ], 30);
+
 	}
 
 	/**
@@ -85,6 +89,10 @@ final class Metabox {
 		if (!\current_user_can('edit_post', $post_id)) {
 			return;
 		}
+		// Check if not an autosave.
+		if (\defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+			return;
+		}
 		$threshold_value = isset($_POST[ self::THRESHOLD_META_KEY ]) ? \sanitize_text_field($_POST[ self::THRESHOLD_META_KEY ]) : 0; //phpcs:ignore
 		$threshold_value = is_numeric($threshold_value) ? $threshold_value : 0;
 		$validity_period_value = isset($_POST[ self::VALIDITY_PERIOD ]) ? \sanitize_text_field($_POST[ self::VALIDITY_PERIOD ]) : 12; //phpcs:ignore
@@ -130,10 +138,13 @@ final class Metabox {
 		$slug = 'default';
 
 		$page = get_page_by_path($slug, OBJECT, $post_type);
+		// TEST 記得移除
+		\J7\WpUtils\Classes\ErrorLog::info($page, '$page');
 		if ($page) {
 			self::$default_member_lv_id = $page->ID;
 			return;
 		} else {
+
 			// create default member_lv
 			$post_id                    = \wp_insert_post(
 				[
