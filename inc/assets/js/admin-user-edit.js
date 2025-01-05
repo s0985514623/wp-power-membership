@@ -10,6 +10,7 @@
     'form#your-profile input[name="user_login"]',
     'form#your-profile select[name="role"]',
     'form#your-profile select[name="member_lv"]',
+		'form#your-profile input[name="member_lv_validity_period"]',
     'form#your-profile input[name="time_MemberLVexpire_date"]',
     'form#your-profile input[name="sales_total"]',
     'form#your-profile input[name="sales_last_year"]',

@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace J7\PowerMembership\Admin\Users;
 
 use J7\PowerMembership\Utils\Base;
+use J7\PowerMembership\MemberLv\Metabox;
 
 /**
  * 用戶編輯頁面
@@ -31,9 +32,11 @@ final class UserEdit {
 	 * @param \WP_User $user 用戶
 	 */
 	public function add_fields( \WP_User $user ): void {
-		$user_id          = $user->ID;
-		$rank_earned_time = date('Y-m-d H:i:s', \gamipress_get_rank_earned_time($user_id, Base::MEMBER_LV_POST_TYPE));
-
+		$user_id = $user->ID;
+		// 如果沒有該等級變更時間，則取得該等級Post Date
+		$rank_earned_timestamp = \gamipress_get_rank_earned_time($user_id, Base::MEMBER_LV_POST_TYPE);
+		$rank_earned_time      = date('Y-m-d H:i:s', $rank_earned_timestamp);
+		// TODO 如果為手動設定等級，則改為取得手動設定等級時間
 		$args       = [
 			'limit'       => -1,
 			'customer_id' => $user_id,
@@ -48,6 +51,9 @@ final class UserEdit {
 
 		$user_member_lv_id = \gamipress_get_user_rank_id($user_id, Base::MEMBER_LV_POST_TYPE);
 		$birthday          = \get_user_meta($user_id, 'birthday', true);
+
+		$validity_period           = \get_post_meta($user_member_lv_id, Metabox::VALIDITY_PERIOD, true);
+		$member_lv_validity_period = date('Y-m-d H:i:s', strtotime("+{$validity_period} months", $rank_earned_timestamp));
 
 		?>
 		<h2>自訂欄位</h2>
@@ -80,14 +86,14 @@ final class UserEdit {
 						<span class="description">上次變更時間：<?php echo $rank_earned_time; ?></span>
 					</td>
 				</tr>
-				<!-- <tr>
+				<tr>
 					<th>
-						<label for="time_MemberLVexpire_date">會員到期日</label>
+						<label for="time_MemberLV_validity_period">會員到期日</label>
 					</th>
 					<td>
-						TODO
+					<input type="text" value="<?php echo $member_lv_validity_period; ?>" id="member_lv_validity_period" name="member_lv_validity_period" disabled="disabled" class="regular-text">
 					</td>
-				</tr> -->
+				</tr>
 				<tr>
 					<th>
 						<label for="sales_total">累積銷售額</label>
