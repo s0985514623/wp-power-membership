@@ -379,12 +379,12 @@ final class View {
 		$condition_by_membership_ids = $this->filter_condition_by_membership_ids($coupon);
 		$condition_by_first_purchase = $this->filter_condition_by_first_purchase($coupon);
 		$condition_by_min_quantity   = $this->filter_condition_by_min_quantity($coupon);
-		// TODO 增加生日禮/滿額送禮/專屬單品折扣條件
+		// 增加生日禮/滿額送禮/專屬單品折扣條件
 		$condition_by_full_gift = $this->filter_condition_by_full_gift($coupon);
 
 		return $condition_by_membership_ids && $condition_by_first_purchase && $condition_by_min_quantity && $condition_by_full_gift && $is_valid;
 	}
-	// TODO　增加生日禮/滿額送禮/專屬單品折扣條件Callback
+	// 增加生日禮/滿額送禮/專屬單品折扣條件Callback
 	/**
 	 * 過濾滿額贈禮條件
 	 *

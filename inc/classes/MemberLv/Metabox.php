@@ -138,8 +138,6 @@ final class Metabox {
 		$slug = 'default';
 
 		$page = get_page_by_path($slug, OBJECT, $post_type);
-		// TEST 記得移除
-		\J7\WpUtils\Classes\ErrorLog::info($page, '$page');
 		if ($page) {
 			self::$default_member_lv_id = $page->ID;
 			return;

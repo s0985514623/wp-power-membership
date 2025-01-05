@@ -42,7 +42,7 @@ final class Metabox {
 	 */
 	public static function add_custom_discount_type( array $discount_types ): array {
 		$discount_types['award_deduct'] = '購物金折抵';
-		// TODO 新增折扣類型=生日禮/滿額贈/專屬單品
+		// 新增折扣類型=生日禮/滿額贈/專屬單品
 		$discount_types['full_gift'] = '滿額贈';
 		return $discount_types;
 	}
@@ -146,7 +146,7 @@ final class Metabox {
 		<?php
 	}
 	/**
-	 * TODO 新增允許的運送選項欄位
+	 * 新增允許的運送選項欄位
 	 *
 	 * @param int        $coupon_id 優惠券 ID
 	 * @param \WC_Coupon $coupon 優惠券

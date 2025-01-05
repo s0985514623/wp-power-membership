@@ -69,7 +69,6 @@ final class MembershipUpgrade {
 		foreach ($all_ranks as $rank_id => $threshold) {
 			if ($acc_amount >= $threshold['threshold']) {
 				\gamipress_award_rank_to_user($rank_id, $customer_id);
-				// TODO 使用Action Scheduler進行到期排程
 				// 移除舊的到期排程
 				\as_unschedule_all_actions('membership_upgrade', [ $customer_id ]);
 				// 新增新的到期排程

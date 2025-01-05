@@ -46,10 +46,9 @@ abstract class Base {
 	 * @return array
 	 */
 	public static function get_order_data_by_user_date( int $user_id, int $months_ago = 0, array $args = [], string $transient_key = '', bool $by_month = false ): array {
-		// TODO 記得開回來
 		// get transient
-		// $key        = self::get_transient_key($user_id, $months_ago, $transient_key);
-		// $order_data = \get_transient($key);
+		$key        = self::get_transient_key($user_id, $months_ago, $transient_key);
+		$order_data = \get_transient($key);
 		if (empty($order_data)) {
 			$order_data = self::query_order_data_by_user_date($user_id, $months_ago, $args, $transient_key, $by_month);
 		}

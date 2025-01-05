@@ -312,7 +312,7 @@ final class GamiPress {
 		$order_created_time = $order->get_date_created();
 		$customer_id        = $order->get_customer_id();
 
-		// TODO 這邊改成新的get_member_trigger_ids()
+		// 這邊改成新的get_member_trigger_ids()
 		// $trigger_ids = self::get_trigger_ids($order_created_time?->date_i18n('H:i'));
 		$trigger_ids = self::get_member_trigger_ids( (string) $customer_id);
 		$total_award_points = 0;
@@ -394,7 +394,7 @@ final class GamiPress {
 		return $trigger_ids;
 	}
 	/**
-	 * TODO 取得符合會員條件的 trigger_ids
+	 * 取得符合會員條件的 trigger_ids
 	 *
 	 * @param string $member_id 會員ID
 	 * @return array<int>
@@ -514,7 +514,7 @@ final class GamiPress {
 	public static function display_award_points_text(): void {
 		$cart_total         = (float) \WC()->cart->get_total('edit');
 		$total_award_points = 0;
-		// TODO 這邊改成新的get_member_trigger_ids()
+		// 這邊改成新的get_member_trigger_ids()
 		// $trigger_ids = self::get_trigger_ids(\wp_date('H:i'));
 		$trigger_ids = self::get_member_trigger_ids( (string) \get_current_user_id());
 
