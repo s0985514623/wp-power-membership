@@ -97,7 +97,7 @@ final class Membership {
 			},
 			'升級條件'           => $next_member_lv_threshold ? "最近一年累積消費達到 {$next_member_lv_threshold_price}元{$diff_text}" : '',
 			'最近一年累積消費'       => $acc_amount_price,
-			'邀請朋友成為會員，賺取購物金' => \site_url("?ref={$current_user_id}"),
+			// '邀請朋友成為會員，賺取購物金' => \site_url("?ref={$current_user_id}"),
 		];
 
 		$rows = '';
@@ -118,10 +118,10 @@ final class Membership {
 		$rows,
 		);
 
-		printf(
-		/*html*/'<a href="%s" class="button">回報問題</a>',
-		\site_url('report-error'),
-		);
+		// printf(
+		// /*html*/'<a href="%s" class="button">回報問題</a>',
+		// \site_url('report-error'),
+		// );
 
 		$id = Base::APP1_SELECTOR;
 		// 移除字串的第一個字

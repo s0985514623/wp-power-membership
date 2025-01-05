@@ -140,4 +140,4 @@ final class Invite {
 	}
 }
 
-Invite::instance();
+// Invite::instance();
