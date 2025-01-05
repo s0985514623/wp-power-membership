@@ -1,6 +1,7 @@
 <?php
 /**
  * 處理會員升級相關邏輯
+ * 處理會員會籍期限AS排程
  */
 
 declare(strict_types=1);
@@ -19,8 +20,9 @@ final class MembershipUpgrade {
 	 * 建構子
 	 */
 	public function __construct() {
-		\add_action('woocommerce_order_status_changed', [ __CLASS__, 'membership_check' ], 10, 3);
+		\add_action('woocommerce_order_status_changed', [ __CLASS__, 'membership_check' ], 20, 3);
 		\add_action('trash_' . Base::MEMBER_LV_POST_TYPE, [ __CLASS__, 'remove_user_member_lv' ], 10, 3);
+		\add_action('membership_upgrade', [ $this, 'membership_upgrade_callback' ], 10, 1);
 	}
 
 	/**
@@ -64,10 +66,17 @@ final class MembershipUpgrade {
 	 */
 	public static function handle_upgrade( int $customer_id, $acc_amount ): void {
 		$all_ranks = self::get_all_rank_threshold();
-
 		foreach ($all_ranks as $rank_id => $threshold) {
-			if ($acc_amount >= $threshold) {
+			if ($acc_amount >= $threshold['threshold']) {
 				\gamipress_award_rank_to_user($rank_id, $customer_id);
+				// TODO 使用Action Scheduler進行到期排程
+				// 移除舊的到期排程
+				\as_unschedule_all_actions('membership_upgrade', [ $customer_id ]);
+				// 新增新的到期排程
+				$timezone     = new \DateTimeZone(wp_timezone_string());
+				$current_time = new \DateTime('now', $timezone);
+				$current_time->modify("+{$threshold['validity_period']} months");
+				\as_schedule_single_action($current_time->getTimestamp(), 'membership_upgrade', [ $customer_id ]);
 				break;
 			}
 		}
@@ -75,8 +84,9 @@ final class MembershipUpgrade {
 
 	/**
 	 * 取得所有等級的門檻
+	 * 新增有效期validity_period
 	 *
-	 * @return array<int, int> ID => threshold
+	 * @return array<int, array> ID =>[ 'threshold' => 門檻, 'validity_period' => 有效期 ]
 	 */
 	public static function get_all_rank_threshold(): array {
 		$ranks = \gamipress_get_ranks(
@@ -87,7 +97,8 @@ final class MembershipUpgrade {
 
 		$formatted_ranks = [];
 		foreach ($ranks as $rank) {
-			$formatted_ranks[ $rank->ID ] = (int) \get_post_meta($rank->ID, Metabox::THRESHOLD_META_KEY, true);
+			$formatted_ranks[ $rank->ID ]['threshold']       = (int) \get_post_meta($rank->ID, Metabox::THRESHOLD_META_KEY, true);
+			$formatted_ranks[ $rank->ID ]['validity_period'] = (int) \get_post_meta($rank->ID, Metabox::VALIDITY_PERIOD, true);
 		}
 
 		\arsort($formatted_ranks);
@@ -123,6 +134,19 @@ final class MembershipUpgrade {
 
 		$result = $wpdb->query($query);
 		// phpcs:enable
+	}
+	/**
+	 * AS 任務回調
+	 * 重新執行近一年內的訂單判斷等級
+	 *
+	 * @param int $customer_id 用戶 ID
+	 * @return void
+	 */
+	public function membership_upgrade_callback( int $customer_id ): void {
+		$order_data = Base::query_order_data_by_user_date($customer_id, 12);
+		$acc_amount = (int) $order_data['total'];
+
+		self::handle_upgrade($customer_id, $acc_amount);
 	}
 }
 
