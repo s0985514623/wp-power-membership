@@ -24,7 +24,7 @@
 		});
 		//console.log('old_coupon', old_coupon);
 
-		$(".required_reward_coupon, .normal_coupon").on("change", function () {
+		$(".required_reward_coupon, .normal_coupon, .special_coupon").on("change", function () {
 			console.log("origin", old_coupon[$(this).data("type")]);
 			console.log("change to", $(this).val());
 			yf_handle_coupon(old_coupon[$(this).data("type")], $(this).val());

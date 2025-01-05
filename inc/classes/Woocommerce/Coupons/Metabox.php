@@ -42,6 +42,8 @@ final class Metabox {
 	 */
 	public static function add_custom_discount_type( array $discount_types ): array {
 		$discount_types['award_deduct'] = '購物金折抵';
+		// TODO 新增折扣類型=生日禮/滿額贈/專屬單品
+		$discount_types['full_gift'] = '滿額贈';
 		return $discount_types;
 	}
 
@@ -57,6 +59,8 @@ final class Metabox {
 			return;
 		}
 		$this->add_hide_this_coupon_field($coupon_id, $coupon);
+		$this->add_birthday_gift_field($coupon_id, $coupon);
+		$this->add_auto_apply_field($coupon_id, $coupon);
 	}
 
 	/**
@@ -70,11 +74,60 @@ final class Metabox {
 			echo 'coupon is empty';
 			return;
 		}
+		// 新增允許的運送選項欄位
+		$this->add_allowed_shipping_field($coupon_id, $coupon);
 		$this->add_allowed_membership_field($coupon_id, $coupon);
 		$this->add_first_purchase_field($coupon_id, $coupon);
 		$this->add_min_quantity_field($coupon_id, $coupon);
 	}
-
+	/**
+	 * 新增自動應用欄位
+	 *
+	 * @param int        $coupon_id 優惠券 ID
+	 * @param \WC_Coupon $coupon 優惠券
+	 */
+	private function add_auto_apply_field( int $coupon_id, \WC_Coupon $coupon ): void {
+		$value = $coupon->get_meta('auto_apply');
+		printf(
+		/*html*/'
+		<div class="options_group">
+			<p class="form-field">
+				<label for="%1$s">%2$s</label>
+				<input type="checkbox" class="checkbox" name="%1$s" id="%1$s" value="yes" %3$s>
+				<span class="description">%4$s</span>
+			</p>
+		</div>
+		',
+		'auto_apply',
+		'自動應用',
+		\checked('yes', $value, false),
+		'如果此用戶已登入，且符合條件，就會自動套用此折價券'
+		);
+	}
+	/**
+	 * 新增是否為生日禮欄位
+	 *
+	 * @param int        $coupon_id 優惠券 ID
+	 * @param \WC_Coupon $coupon 優惠券
+	 */
+	private function add_birthday_gift_field( int $coupon_id, \WC_Coupon $coupon ): void {
+		$value = $coupon->get_meta('birthday_gift');
+		printf(
+		/*html*/'
+		<div class="options_group">
+			<p class="form-field">
+				<label for="%1$s">%2$s</label>
+				<input type="checkbox" class="checkbox" name="%1$s" id="%1$s" value="yes" %3$s>
+				<span class="description">%4$s</span>
+			</p>
+		</div>
+		',
+		'birthday_gift',
+		'是否為生日禮',
+		\checked('yes', $value, false),
+		'如果此用戶已登入且經過生日，就可以使用折價券'
+		);
+	}
 	/**
 	 * 新增不自動顯示此優惠券欄位
 	 *
@@ -92,7 +145,36 @@ final class Metabox {
 		</p>
 		<?php
 	}
-
+	/**
+	 * TODO 新增允許的運送選項欄位
+	 *
+	 * @param int        $coupon_id 優惠券 ID
+	 * @param \WC_Coupon $coupon 優惠券
+	 */
+	private function add_allowed_shipping_field( int $coupon_id, \WC_Coupon $coupon ): void {
+		// phpcs:disable
+		?>
+		<div class="options_group">
+			<p class="form-field">
+				<label for="allowed_shipping_classes"><?php _e('允許的運送方式', 'power_membership'); ?></label>
+				<select id="allowed_shipping_classes" name="allowed_shipping_classes[]" style="width: 50%;" class="wc-enhanced-select" multiple="multiple" data-placeholder="<?php esc_attr_e('無須運送方式', 'power_membership'); ?>">
+		<?php
+		$shipping_classes = WC()->shipping->get_shipping_classes();
+		$shipping_class_ids = $coupon->get_meta('allowed_shipping_classes');
+		$shipping_class_ids = is_array($shipping_class_ids) ? $shipping_class_ids : [];
+		if($shipping_classes) {
+			foreach($shipping_classes as $shipping_class) {
+				echo '<option value="' . esc_attr($shipping_class->term_id) . '"' . wc_selected($shipping_class->term_id, $shipping_class_ids) . '>' . esc_html($shipping_class->name) . '</option>';
+			}
+		}
+		?>
+				</select>
+		<?php echo wc_help_tip(__('只有指定的運送方式才可以使用此優惠', 'power_membership')); ?>
+			</p>
+		</div>
+		<?php
+		// phpcs:enable
+	}
 	/**
 	 * 新增允許的會員等級欄位
 	 *
@@ -194,9 +276,52 @@ final class Metabox {
 		$this->update_allowed_membership_field($coupon_id, $coupon);
 		$this->update_first_purchase_field($coupon_id, $coupon);
 		$this->update_min_quantity_field($coupon_id, $coupon);
+		$this->update_allowed_shipping_field($coupon_id, $coupon);
+		$this->update_birthday_gift_field($coupon_id, $coupon);
+		$this->update_auto_apply_field($coupon_id, $coupon);
 		$coupon->save();
 	}
+	/**
+	 * 更新自動應用欄位
+	 *
+	 * @param int        $coupon_id 優惠券 ID
+	 * @param \WC_Coupon $coupon 優惠券
+	 */
+	private function update_auto_apply_field( int $coupon_id, \WC_Coupon $coupon ): void {
+		$value = $_POST['auto_apply'] ?? ''; // phpcs:ignore
 
+		if ('yes' === $value) {
+			$coupon->update_meta_data('auto_apply', $value);
+		} else {
+			$coupon->update_meta_data('auto_apply', 'no');
+		}
+	}
+	/**
+	 * 更新生日禮金欄位
+	 *
+	 * @param int        $coupon_id 優惠券 ID
+	 * @param \WC_Coupon $coupon 優惠券
+	 */
+	private function update_birthday_gift_field( int $coupon_id, \WC_Coupon $coupon ): void {
+		$value = $_POST['birthday_gift'] ?? ''; // phpcs:ignore
+
+		if ('yes' === $value) {
+			$coupon->update_meta_data('birthday_gift', $value);
+		} else {
+			$coupon->update_meta_data('birthday_gift', 'no');
+		}
+	}
+	/**
+	 * 更新運送方式欄位
+	 *
+	 * @param int        $coupon_id 優惠券 ID
+	 * @param \WC_Coupon $coupon 優惠券
+	 */
+	private function update_allowed_shipping_field( int $coupon_id, \WC_Coupon $coupon ): void {
+		$allowed_shipping_classes = isset($_POST['allowed_shipping_classes']) ? (array) \wp_unslash($_POST['allowed_shipping_classes']) : []; // phpcs:ignore
+
+		$coupon->update_meta_data('allowed_shipping_classes', $allowed_shipping_classes);
+	}
 	/**
 	 * 更新不自動顯示此優惠券欄位
 	 *

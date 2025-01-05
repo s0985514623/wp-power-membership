@@ -27,6 +27,13 @@ final class View {
 	public $further_coupons = [];
 
 	/**
+	 * 特殊優惠券
+	 *
+	 * @var array
+	 */
+	public $special_coupons = [ 'full_gift' ];
+
+	/**
 	 * 建構子
 	 */
 	public function __construct() {
@@ -88,7 +95,6 @@ final class View {
 				);
 		}
 	}
-
 	/**
 	 * 顯示購物金折抵
 	 *
@@ -152,6 +158,7 @@ final class View {
 		echo '<div class="power-coupon">';
 		echo '<h2 class="">消費滿額折扣</h2>';
 		echo '<div class="mb-2 py-2">';
+		$this->show_special_coupons($checkout);
 		foreach ($coupons as $coupon) {
 			$props = $this->get_coupon_props($coupon);
 			\load_template(
@@ -166,7 +173,107 @@ final class View {
 		echo '</div>';
 		echo '</div>';
 	}
+	/**
+	 * 顯示可用的生日禮/滿額送禮/專屬單品折扣
+	 *
+	 * @param \WC_Checkout $checkout 結帳頁面
+	 * @return void
+	 */
+	public function show_special_coupons( $checkout ): void {
+		$coupons = $this->get_valid_special_coupons(); // 取得特殊優惠
+		if (empty($coupons)) {
+			return;
+		}
+		foreach ($coupons as $coupon) {
+			$props = $this->get_coupon_props($coupon);
+			\load_template(
+						__DIR__ . '/templates/special.php',
+						false,
+						[
+							'coupon' => $coupon,
+							'props'  => $props,
+						]
+						);
+		}
+	}
 
+	/**
+	 * 取得有效的生日禮/滿額送禮/專屬單品優惠券
+	 *
+	 * @return array
+	 */
+	public function get_valid_special_coupons(): array {
+		$coupon_ids = \get_posts(
+			[
+				'posts_per_page' => -1,
+				'orderby'        => 'meta_value_num',
+				'order'          => 'ASC',
+				'post_type'      => 'shop_coupon',
+				'post_status'    => 'publish',
+				'fields'         => 'ids',
+				'meta_query'     => [
+					'relation' => 'OR',
+					[
+						'key'     => 'discount_type',
+						'value'   => $this->special_coupons,
+						'compare' => 'IN',
+					],
+					[
+						'key'     => 'birthday_gift',
+						'value'   => 'yes', // 替換為您希望匹配的值
+						'compare' => '==', // 可用於部分匹配
+					],
+					[
+						'key'     => 'auto_apply',
+						'value'   => 'yes', // 替換為您希望匹配的值
+						'compare' => '==', // 可用於部分匹配
+					],
+				],
+			]
+		) ?? [];
+		$coupons    = array_map(
+			function ( $coupon_id ) {
+				return new \WC_Coupon($coupon_id);
+			},
+			$coupon_ids
+			);
+
+		// 生日禮金篩選
+		$coupons   = array_filter(
+			$coupons,
+			function ( $coupon ) {
+				// 取得優惠券類型是否為生日禮
+				$birthday_gift = $coupon->get_meta('birthday_gift');
+				// 如果是的話，判斷是否今天日期是否大於等於用戶生日
+				if ($birthday_gift === 'yes') {
+					$user_id       = \get_current_user_id();
+					$user_birthday = \get_user_meta($user_id, 'birthday', true);// YYYY-MM-DD
+					$today         = wp_date('Y-m-d');
+					if ($today >= $user_birthday) {
+						return true;
+					}
+					return false;
+				}
+				return true;
+			}
+		);
+		$discounts = new \WC_Discounts(WC()->cart);
+
+		foreach ($coupons as $key => $coupon) {
+			$valid = $discounts->is_coupon_valid($coupon);
+			if (is_wp_error($valid)) {
+				unset($coupons[ $key ]);
+				continue;
+			}
+			// 自動應用折價券
+			$coupon_code = $coupon->get_code();
+			if (!WC()->cart->has_discount($coupon_code)) {
+				WC()->cart->apply_coupon($coupon_code);
+
+			}
+		}
+		return $coupons;
+	}
 	/**
 	 * 取得有效的優惠券
 	 *
@@ -272,10 +379,57 @@ final class View {
 		$condition_by_membership_ids = $this->filter_condition_by_membership_ids($coupon);
 		$condition_by_first_purchase = $this->filter_condition_by_first_purchase($coupon);
 		$condition_by_min_quantity   = $this->filter_condition_by_min_quantity($coupon);
+		// TODO 增加生日禮/滿額送禮/專屬單品折扣條件
+		$condition_by_full_gift = $this->filter_condition_by_full_gift($coupon);
 
-		return $condition_by_membership_ids && $condition_by_first_purchase && $condition_by_min_quantity && $is_valid;
+		return $condition_by_membership_ids && $condition_by_first_purchase && $condition_by_min_quantity && $condition_by_full_gift && $is_valid;
 	}
-
+	// TODO　增加生日禮/滿額送禮/專屬單品折扣條件Callback
+	/**
+	 * 過濾滿額贈禮條件
+	 *
+	 * @param \WC_Coupon $coupon 優惠券
+	 * @return bool
+	 */
+	private function filter_condition_by_full_gift( \WC_Coupon $coupon ): bool {
+		$discount_type = $coupon->get_discount_type();
+		if ($discount_type==='full_gift') {
+			// 取得優惠券類型
+			$shipping_classes_ids = $coupon->get_meta('allowed_shipping_classes');
+			$all_shipping_classes = $this->get_shipping_classes_slug($shipping_classes_ids);
+			// 判斷是否為冷凍商品的運送方式
+			// TODO freezing為冷凍商品的運送方式，未來改成動態獲得
+			if (in_array('freezing', $all_shipping_classes)) {
+				// 判斷購物車是否有冷凍商品
+				$cart_items   = WC()->cart->get_cart();
+				$has_freezing = false;
+				foreach ($cart_items as $cart_item) {
+					$product_id     = $cart_item['product_id'];
+					$product        = wc_get_product($product_id);
+					$shipping_class = $product->get_shipping_class();
+					if ($shipping_class === 'freezing') {
+						$has_freezing =true;
+						break;
+					}
+				}
+				return $has_freezing;
+			} else {
+				$cart_items = WC()->cart->get_cart();
+				$has_normal = false;
+				foreach ($cart_items as $cart_item) {
+					$product_id     = $cart_item['product_id'];
+					$product        = wc_get_product($product_id);
+					$shipping_class = $product->get_shipping_class();
+					if ($shipping_class !== 'freezing') {
+						$has_normal =true;
+						break;
+					}
+				}
+				return $has_normal;
+			}
+		}
+		return true;
+	}
 	/**
 	 * 過濾會員等級條件
 	 *
@@ -288,7 +442,6 @@ final class View {
 		$allowed_membership_ids = is_array($allowed_membership_ids) ? $allowed_membership_ids : [];
 		$user_id                = \get_current_user_id();
 		$user_member_lv_id      = \gamipress_get_user_rank_id($user_id, Base::MEMBER_LV_POST_TYPE);
-
 		if (in_array($user_member_lv_id, $allowed_membership_ids)) {
 			return true;
 		}
@@ -353,7 +506,16 @@ final class View {
 				return (int) $a->get_minimum_amount() - (int) $a->get_minimum_amount();
 			}
 			);
-
+		// 重新篩選根據運送狀態篩選further_coupons
+		$further_coupons = array_filter(
+			$further_coupons,
+			function ( $further_coupon ) {
+				$condition_by_membership_ids = $this->filter_condition_by_membership_ids($further_coupon);
+				$condition_by_first_purchase = $this->filter_condition_by_first_purchase($further_coupon);
+				$condition_by_min_quantity   = $this->filter_condition_by_min_quantity($further_coupon);
+				return $this->filter_condition_by_full_gift($further_coupon)&& $condition_by_membership_ids && $condition_by_first_purchase && $condition_by_min_quantity;
+			}
+			);
 		// 只保留前 N 個 further_coupons
 		$show_further_coupons_qty = (int) $power_plugins_settings[ Settings::SHOW_FURTHER_COUPONS_QTY_FIELD_NAME ] ?? 3;
 		$sliced_further_coupons   = array_slice($further_coupons, 0, $show_further_coupons_qty);
@@ -376,7 +538,8 @@ final class View {
 	public function get_coupon_amount( \WC_Coupon $coupon ): int {
 		if ($coupon->is_type([ 'percent' ])) {
 			$cart = WC()->cart;
-			return (int) $coupon->get_amount() * (int) $cart->subtotal / 100;
+			// 調整以避免出現浮點數問題，並將其四捨五入
+			return (int) round( $coupon->get_amount() * $cart->subtotal / 100);
 		}
 		return (int) $coupon->get_amount();
 	}
@@ -639,7 +802,24 @@ final class View {
 			]
 		);
 	}
-
+	/**
+	 * 根據傳入的shipping class id 傳回 slug
+	 *
+	 * @param array $shipping_class_id
+	 * return array
+	 */
+	public function get_shipping_classes_slug( $shipping_class_ids ): array {
+		$shipping_classes = \WC()->shipping->get_shipping_classes();
+		$slug             = [];
+		foreach ($shipping_class_ids as $shipping_class_id) {
+			foreach ($shipping_classes as $shipping_class) {
+				if ( $shipping_class_id === (string) $shipping_class->term_id) {
+					$slug[] = $shipping_class->slug;
+				}
+			}
+		}
+		return $slug;
+	}
 	// public function add_fee(\WC_Cart $cart): void
 	// {
 	// $cart->add_fee(__("首次消費折 {$discount} 元", 'power_membership'), -$discount);
