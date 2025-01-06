@@ -244,13 +244,22 @@ final class View {
 			function ( $coupon ) {
 				// 取得優惠券類型是否為生日禮
 				$birthday_gift = $coupon->get_meta('birthday_gift');
-				// 如果是的話，判斷是否今天日期是否大於等於用戶生日
+				// 如果是的話，判斷今天是否已經過了生日，以及今天是否在生日後三個月內
 				if ($birthday_gift === 'yes') {
 					$user_id       = \get_current_user_id();
-					$user_birthday = \get_user_meta($user_id, 'birthday', true);// YYYY-MM-DD
+					$user_birthday = \get_user_meta($user_id, 'birthday', true); // YYYY-MM-DD
 					$today         = wp_date('Y-m-d');
-					if ($today >= $user_birthday) {
-						return true;
+
+					if (!empty($user_birthday)) {
+							$birthday_this_year = date('Y') . '-' . date('m-d', strtotime($user_birthday));
+
+							// 如果今天已經過了生日，檢查是否在生日後三個月內
+						if ($today >= $birthday_this_year) {
+							$three_months_later = date('Y-m-d', strtotime($birthday_this_year . ' +3 months'));
+							if ($today <= $three_months_later) {
+									return true;
+							}
+						}
 					}
 					return false;
 				}
@@ -313,7 +322,7 @@ final class View {
 		$coupons = array_filter(
 			$coupons,
 			function ( $coupon ) {
-				return 'award_deduct' !== $coupon->get_discount_type();
+				return 'award_deduct' !== $coupon->get_discount_type()&&'full_gift' !== $coupon->get_discount_type()&&'yes'!==$coupon->get_meta('birthday_gift')&&'yes'!==$coupon->get_meta('auto_apply');
 			}
 			);
 
@@ -503,7 +512,7 @@ final class View {
 		usort(
 			$further_coupons,
 			function ( $a, $b ) {
-				return (int) $a->get_minimum_amount() - (int) $a->get_minimum_amount();
+				return (int) $a->get_minimum_amount() - (int) $b->get_minimum_amount();
 			}
 			);
 		// 重新篩選根據運送狀態篩選further_coupons
@@ -711,7 +720,7 @@ final class View {
 	 * 添加自訂費用
 	 */
 	public function add_custom_fee(): void {
-		$value = WC()->session->get('custom_fee');
+		$value             = WC()->session->get('custom_fee');
 		$point_amount      = $value['amount'] ?? 0;
 		$coupon_id         = $value['coupon_id'] ?? 0;
 		$coupon            = new \WC_Coupon($coupon_id);
