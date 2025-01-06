@@ -712,7 +712,6 @@ final class View {
 	 */
 	public function add_custom_fee(): void {
 		$value = WC()->session->get('custom_fee');
-
 		$point_amount      = $value['amount'] ?? 0;
 		$coupon_id         = $value['coupon_id'] ?? 0;
 		$coupon            = new \WC_Coupon($coupon_id);
@@ -728,7 +727,7 @@ final class View {
 			\WC()->cart->add_fee(
 				'購物金折抵',
 					$point_amount,
-					false
+					'yes' === get_option('woocommerce_calc_taxes')?true:false
 			);
 		}
 	}
