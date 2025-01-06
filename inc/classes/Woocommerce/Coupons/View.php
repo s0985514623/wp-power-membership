@@ -330,7 +330,7 @@ final class View {
 		$coupons = array_filter(
 			$coupons,
 			function ( $coupon ) {
-				return 'award_deduct' !== $coupon->get_discount_type()&&'full_gift' !== $coupon->get_discount_type()&&'yes'!==$coupon->get_meta('birthday_gift')&&'yes'!==$coupon->get_meta('auto_apply');
+				return 'award_deduct' !== $coupon->get_discount_type()&&'yes'!==$coupon->get_meta('birthday_gift')&&'yes'!==$coupon->get_meta('auto_apply');
 			}
 			);
 
@@ -508,7 +508,6 @@ final class View {
 	 */
 	public function sort_coupons( array $available_coupons ): array {
 		global $power_plugins_settings;
-
 		$further_coupons = $this->further_coupons;
 
 		usort(
@@ -520,7 +519,7 @@ final class View {
 		usort(
 			$further_coupons,
 			function ( $a, $b ) {
-				return (int) $a->get_minimum_amount() - (int) $b->get_minimum_amount();
+				return (int) $a->get_minimum_amount() - (int) $a->get_minimum_amount();
 			}
 			);
 		// 重新篩選根據運送狀態篩選further_coupons
