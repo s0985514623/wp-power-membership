@@ -341,6 +341,10 @@ final class View {
 			if (is_wp_error($valid)) {
 				unset($coupons[ $key ]);
 			}
+			// 如果是自動應用的折價券，則一樣unset
+			if ('full_gift' === $coupon->get_discount_type()) {
+				unset($coupons[ $key ]);
+			}
 		}
 
 		return $coupons;
