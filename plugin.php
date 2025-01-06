@@ -1,13 +1,13 @@
 <?php
 /**
- * Plugin Name:       Power Membership | 訂製版本 for elittleworld
+ * Plugin Name:       Power Membership | 訂製版本 for 享味生活
  * Plugin URI:        https://cloud.luke.cafe/plugins/power-membership/
  * Description:       Power Membership 可以設定會員升級需要的累積消費門檻，並針對特定會員等級發放優惠，也改善介面，可輕鬆查看會員的消費總覽。
- * Version:           1.0.1
+ * Version:           1.0.0
  * Requires at least: 5.7
  * Requires PHP:      7.4
- * Author:            J7
- * Author URI:        https://github.com/j7-dev
+ * Author:            R2
+ * Author URI:        https://github.com/s0985514623
  * License:           GPL v2 or later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       power-membership
@@ -62,7 +62,7 @@ final class Plugin {
 		$this->init(
 			[
 				'app_name'    => 'power membership',
-				'github_repo' => 'https://github.com/j7-dev/wp-power-membership',
+				'github_repo' => 'https://github.com/s0985514623/wp-power-membership',
 				'callback'    => [ Bootstrap::class, 'instance' ],
 			]
 		);
