@@ -36,7 +36,6 @@ final class Metabox {
 		// 會重複創建是因為在 init 後才會有 post type,改成在wp_loaded 後執行
 		// \add_action('init', [ $this, 'create_default_member_lv' ], 30);
 		\add_action('wp', [ $this, 'create_default_member_lv' ], 30);
-
 	}
 
 	/**
@@ -93,8 +92,12 @@ final class Metabox {
 		if (\defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
 			return;
 		}
+		// 如果非member_lv post type,則不處理
+		if ($post->post_type !== Base::MEMBER_LV_POST_TYPE) {
+			return;
+		}
 		$threshold_value = isset($_POST[ self::THRESHOLD_META_KEY ]) ? \sanitize_text_field($_POST[ self::THRESHOLD_META_KEY ]) : 0; //phpcs:ignore
-		$threshold_value = is_numeric($threshold_value) ? $threshold_value : 0;
+		$threshold_value       = is_numeric($threshold_value) ? $threshold_value : 0;
 		$validity_period_value = isset($_POST[ self::VALIDITY_PERIOD ]) ? \sanitize_text_field($_POST[ self::VALIDITY_PERIOD ]) : 12; //phpcs:ignore
 		$validity_period_value = is_numeric($validity_period_value) ? $validity_period_value : 12;
 		\update_post_meta($post_id, self::THRESHOLD_META_KEY, $threshold_value);
