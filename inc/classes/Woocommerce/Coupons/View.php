@@ -251,11 +251,19 @@ final class View {
 					$today         = wp_date('Y-m-d');
 
 					if (!empty($user_birthday)) {
-							$birthday_this_year = date('Y') . '-' . date('m-d', strtotime($user_birthday));
+						$current_year       = wp_date('Y');
+						$birthday_this_year = $current_year . '-' . wp_date('m-d', strtotime($user_birthday));
 
-							// 如果今天已經過了生日，檢查是否在生日後三個月內
+						// 如果生日已經過了今年，檢查是否在三個月內
 						if ($today >= $birthday_this_year) {
-							$three_months_later = date('Y-m-d', strtotime($birthday_this_year . ' +3 months'));
+								$three_months_later = wp_date('Y-m-d', strtotime($birthday_this_year . ' +3 months'));
+							if ($today <= $three_months_later) {
+									return true;
+							}
+						} else {
+								// 如果生日尚未到，檢查去年生日的三個月後是否跨到今年
+								$birthday_last_year = ( $current_year - 1 ) . '-' . wp_date('m-d', strtotime($user_birthday));
+								$three_months_later = wp_date('Y-m-d', strtotime($birthday_last_year . ' +3 months'));
 							if ($today <= $three_months_later) {
 									return true;
 							}
