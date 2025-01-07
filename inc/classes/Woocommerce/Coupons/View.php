@@ -152,6 +152,12 @@ final class View {
 		if (empty($coupons)) {
 			return;
 		}
+		\error_log('get_valid_coupons');
+		$log =\print_r($coupons, true);
+		\error_log($log);
+		\error_log('get_further_coupons');
+		$log =\print_r($this->further_coupons, true);
+		\error_log($log);
 		global $power_plugins_settings;
 		// var_dump($power_plugins_settings);
 		$coupons = $this->sort_coupons($coupons);
@@ -184,6 +190,9 @@ final class View {
 		if (empty($coupons)) {
 			return;
 		}
+		\error_log('get_valid_special_coupons');
+		$log =\print_r($coupons, true);
+		\error_log($log);
 		foreach ($coupons as $coupon) {
 			$props = $this->get_coupon_props($coupon);
 			\load_template(
