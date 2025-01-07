@@ -147,17 +147,11 @@ final class View {
 	 * @param \WC_Checkout $checkout 結帳頁面
 	 */
 	public function show_available_coupons( $checkout ): void {
-
 		$coupons = $this->get_valid_coupons(); // 取得網站一般優惠
-		if (empty($coupons)) {
+		// 當沒有可用優惠以及進一步的優惠券時，不顯示
+		if (empty($coupons)&&empty($this->further_coupons)) {
 			return;
 		}
-		\error_log('get_valid_coupons');
-		$log =\print_r($coupons, true);
-		\error_log($log);
-		\error_log('get_further_coupons');
-		$log =\print_r($this->further_coupons, true);
-		\error_log($log);
 		global $power_plugins_settings;
 		// var_dump($power_plugins_settings);
 		$coupons = $this->sort_coupons($coupons);
@@ -190,9 +184,7 @@ final class View {
 		if (empty($coupons)) {
 			return;
 		}
-		\error_log('get_valid_special_coupons');
-		$log =\print_r($coupons, true);
-		\error_log($log);
+
 		foreach ($coupons as $coupon) {
 			$props = $this->get_coupon_props($coupon);
 			\load_template(
@@ -545,12 +537,26 @@ final class View {
 				return $this->filter_condition_by_full_gift($further_coupon)&& $condition_by_membership_ids && $condition_by_first_purchase && $condition_by_min_quantity;
 			}
 			);
+		// 過濾掉空值，並重新索引陣列
+		$further_coupons = array_values(
+			array_filter(
+			$further_coupons,
+			function ( $value ) {
+				return !empty($value); // 過濾掉空值
+			}
+			)
+			);
+
 		// 只保留前 N 個 further_coupons
 		$show_further_coupons_qty = (int) $power_plugins_settings[ Settings::SHOW_FURTHER_COUPONS_QTY_FIELD_NAME ] ?? 3;
 		$sliced_further_coupons   = array_slice($further_coupons, 0, $show_further_coupons_qty);
 
 		// 如果啟用只顯示最大折扣券
 		if ($power_plugins_settings[ Settings::ENABLE_BIGGEST_COUPON_FIELD_NAME ]) {
+			// 如果沒有可用優惠券，則直接返回進一步的優惠券
+			if (empty($available_coupons)) {
+				return $sliced_further_coupons;
+			}
 			$result = array_merge([ $available_coupons[0] ], $sliced_further_coupons);
 		} else {
 			$result = array_merge($available_coupons, $sliced_further_coupons);
