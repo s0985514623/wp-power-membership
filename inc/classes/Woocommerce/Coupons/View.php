@@ -542,7 +542,6 @@ final class View {
 			}
 			)
 			);
-
 		// 只保留前 N 個 further_coupons
 		$show_further_coupons_qty = (int) $power_plugins_settings[ Settings::SHOW_FURTHER_COUPONS_QTY_FIELD_NAME ] ?? 3;
 		$sliced_further_coupons   = array_slice($further_coupons, 0, $show_further_coupons_qty);
@@ -682,7 +681,8 @@ final class View {
 		global $power_plugins_settings;
 
 		if ($power_plugins_settings[ Settings::ENABLE_SHOW_FURTHER_COUPONS_FIELD_NAME ] && $not_valid) {
-			$this->further_coupons[] = $coupon;
+			// 判斷further_coupons中是否存在相同的coupon
+			$this->further_coupons[ $coupon->get_id() ] = $coupon;
 		}
 
 		return $not_valid;
