@@ -147,9 +147,10 @@ final class View {
 	 * @param \WC_Checkout $checkout 結帳頁面
 	 */
 	public function show_available_coupons( $checkout ): void {
-		$coupons = $this->get_valid_coupons(); // 取得網站一般優惠
+		$coupons         = $this->get_valid_coupons(); // 取得網站一般優惠
+		$special_coupons = $this->get_valid_special_coupons(); // 取得特殊優惠
 		// 當沒有可用優惠以及進一步的優惠券時，不顯示
-		if (empty($coupons)&&empty($this->further_coupons)) {
+		if (empty($coupons)&&empty($this->further_coupons)&&empty($special_coupons)) {
 			return;
 		}
 		global $power_plugins_settings;
@@ -158,7 +159,7 @@ final class View {
 		echo '<div class="power-coupon">';
 		echo '<h2 class="">消費滿額折扣</h2>';
 		echo '<div class="mb-2 py-2">';
-		$this->show_special_coupons($checkout);
+		$this->show_special_coupons($special_coupons);
 		foreach ($coupons as $coupon) {
 			$props = $this->get_coupon_props($coupon);
 			\load_template(
@@ -176,16 +177,11 @@ final class View {
 	/**
 	 * 顯示可用的生日禮/滿額送禮/專屬單品折扣
 	 *
-	 * @param \WC_Checkout $checkout 結帳頁面
+	 * @param \WC_Coupon $special_coupons 優惠券
 	 * @return void
 	 */
-	public function show_special_coupons( $checkout ): void {
-		$coupons = $this->get_valid_special_coupons(); // 取得特殊優惠
-		if (empty($coupons)) {
-			return;
-		}
-
-		foreach ($coupons as $coupon) {
+	public function show_special_coupons( $special_coupons ): void {
+		foreach ($special_coupons as $coupon) {
 			$props = $this->get_coupon_props($coupon);
 			\load_template(
 						__DIR__ . '/templates/special.php',
