@@ -54,7 +54,7 @@ final class Ui {
 			'users.php',
 			__('會員等級', 'power_membership'),
 			__('會員等級', 'power_membership'),
-			'edit_users',
+			'manage_woocommerce',
 			'edit.php?post_type=' . Base::MEMBER_LV_POST_TYPE,
 			'',
 			200

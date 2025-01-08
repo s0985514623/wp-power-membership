@@ -148,7 +148,7 @@ final class UserEdit {
 	 * @param int $user_id 用戶 ID
 	 */
 	public function update_fields( int $user_id ): void {
-		if (!\current_user_can('edit_user', $user_id)) {
+		if (!\current_user_can('manage_woocommerce', $user_id)) {
 			return;
 		}
 

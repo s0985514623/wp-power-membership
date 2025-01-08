@@ -85,7 +85,7 @@ final class Metabox {
 	 */
 	public function save_metabox( int $post_id, \WP_Post $post ): void {
 		// Check if user has permissions to save data.
-		if (!\current_user_can('edit_post', $post_id)) {
+		if (!\current_user_can('manage_woocommerce', $post_id)) {
 			return;
 		}
 		// Check if not an autosave.
