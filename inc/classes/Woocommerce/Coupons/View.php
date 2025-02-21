@@ -248,20 +248,22 @@ final class View {
 					$today         = wp_date('Y-m-d');
 
 					if (!empty($user_birthday)) {
-						$current_year       = wp_date('Y');
-						$birthday_this_year = $current_year . '-' . wp_date('m-d', strtotime($user_birthday));
+						// 判斷是否已使用過這張優惠券
+						$has_user_used_coupon = $this->has_user_used_coupon($user_id, $coupon, $user_birthday);
+						$current_year         = wp_date('Y');
+						$birthday_this_year   = $current_year . '-' . wp_date('m-d', strtotime($user_birthday));
 
 						// 如果生日已經過了今年，檢查是否在三個月內
 						if ($today >= $birthday_this_year) {
 								$three_months_later = wp_date('Y-m-d', strtotime($birthday_this_year . ' +3 months'));
-							if ($today <= $three_months_later) {
+							if ($today <= $three_months_later && !$has_user_used_coupon) {
 									return true;
 							}
 						} else {
 								// 如果生日尚未到，檢查去年生日的三個月後是否跨到今年
 								$birthday_last_year = ( $current_year - 1 ) . '-' . wp_date('m-d', strtotime($user_birthday));
 								$three_months_later = wp_date('Y-m-d', strtotime($birthday_last_year . ' +3 months'));
-							if ($today <= $three_months_later) {
+							if ($today <= $three_months_later&&!$has_user_used_coupon) {
 									return true;
 							}
 						}
@@ -854,6 +856,44 @@ final class View {
 	// {
 	// $cart->add_fee(__("首次消費折 {$discount} 元", 'power_membership'), -$discount);
 	// }
+
+	/**
+	 * 是否使用過某種優惠券
+	 *
+	 * @param int        $user_id 用戶 ID
+	 * @param \WC_Coupon $coupon_check 優惠券
+	 * @param string     $date 日期
+	 *
+	 * @return bool
+	 */
+	public function has_user_used_coupon( $user_id, $coupon_check, $date ) {
+		if (!$user_id) {
+			return false; // 如果是訪客則無法檢查
+		}
+		// 計算日期後 3 個月的時間範圍
+		$start_date = $date;
+		$end_date   = date('Y-m-d 23:59:59', strtotime('+3 months', strtotime($date)));
+
+		$args = [
+			'customer_id'  => $user_id,
+			'status'       => [ 'wc-completed', 'wc-processing', 'wc-on-hold' ], // 只查詢有效的訂單
+			'limit'        => -1, // 確保查詢所有符合條件的訂單
+			'date_created' => $start_date . '...' . $end_date,
+		];
+
+		$orders = wc_get_orders($args);
+		foreach ($orders as $order) {
+			$coupons = $order->get_coupons(); // WooCommerce 8.5+ 推薦使用此方法
+			foreach ($coupons as $coupon) {
+				// 如果找到符合的折價券，表示已經使用過
+				if ($coupon->get_code()===$coupon_check->get_code()) {
+					return true; // 找到符合的折價券，表示已經使用過
+				}
+			}
+		}
+		return false;
+	}
 }
+
 
 View::instance();
