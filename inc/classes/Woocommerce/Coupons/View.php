@@ -871,8 +871,9 @@ final class View {
 			return false; // 如果是訪客則無法檢查
 		}
 		// 計算日期後 3 個月的時間範圍
-		$start_date = $date;
-		$end_date   = date('Y-m-d 23:59:59', strtotime('+3 months', strtotime($date)));
+		$current_year = wp_date('Y');
+		$start_date   = $current_year . '-' . wp_date('m-d', strtotime($date));
+		$end_date     = $current_year . '-' . wp_date('m-d 23:59:59', strtotime('+3 months', strtotime($date)));
 
 		$args = [
 			'customer_id'  => $user_id,
