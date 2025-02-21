@@ -71,7 +71,7 @@ const index = () => {
 				loading={isLoading}
 				columns={columns}
 				dataSource={logs}
-				scroll={{ x: 600 }}
+				scroll={{ x: true }}
 			/>
 		</>
 	)
