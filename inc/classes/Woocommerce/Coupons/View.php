@@ -870,16 +870,15 @@ final class View {
 		if (!$user_id) {
 			return false; // 如果是訪客則無法檢查
 		}
-		// 計算日期後 3 個月的時間範圍
-		$current_year = wp_date('Y');
-		$start_date   = $current_year . '-' . wp_date('m-d', strtotime($date));
-		$end_date     = $current_year . '-' . wp_date('m-d 23:59:59', strtotime('+3 months', strtotime($date)));
+		// 計算當天往前三個月的日期區間
+		$current_date = wp_date('Y-m-d H:i:s');
+		$start_date   = wp_date('Y-m-d 00:00:00', strtotime('-3 months', strtotime($current_date)));
 
 		$args = [
 			'customer_id'  => $user_id,
 			'status'       => [ 'wc-completed', 'wc-processing', 'wc-on-hold' ], // 只查詢有效的訂單
 			'limit'        => -1, // 確保查詢所有符合條件的訂單
-			'date_created' => $start_date . '...' . $end_date,
+			'date_created' => $start_date . '...' . $current_date, // 三個月前到現在
 		];
 
 		$orders = wc_get_orders($args);
