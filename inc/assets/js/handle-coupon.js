@@ -29,6 +29,7 @@
 			'change',
 			'.required_reward_coupon, .normal_coupon, .special_coupon',
 			function () {
+				console.log('old_coupon', old_coupon)
 				console.log('origin', old_coupon[$(this).data('type')])
 				console.log('change to', $(this).val())
 				yf_handle_coupon(old_coupon[$(this).data('type')], $(this).val())
@@ -146,6 +147,7 @@
 			)
 		})
 	})
+	//  購物車AJAX更新時觸發 > 完成後手動觸發 update_checkout > updated_checkout更新radio 狀態
 	$(document).on('wc_fragments_refreshed', function () {
 		console.log('wc_fragments_refreshed')
 		$.ajax({
@@ -173,20 +175,23 @@
 				console.log(error)
 			},
 			complete: function () {
-				$('.woocommerce-remove-coupon').each(function () {
-					$('input[value="' + $(this).data('coupon') + '"]').prop(
-						'checked',
-						true,
-					)
-					const type = $('input[value="' + $(this).data('coupon') + '"]').data(
-						'type',
-					)
-					old_coupon[type] = $(this).data('coupon')
-				})
-				// 结束 loading
-				$('.power-coupon').unblock()
+				$(document.body).trigger('update_checkout')
 				console.log('complete');
 			},
 		})
+	})
+	$(document.body).on('updated_checkout', function () {
+		$('.woocommerce-remove-coupon').each(function () {
+			$('input[value="' + $(this).data('coupon') + '"]').prop(
+				'checked',
+				true,
+			)
+			const type = $('input[value="' + $(this).data('coupon') + '"]').data(
+				'type',
+			)
+			old_coupon[type] = $(this).data('coupon')
+		})
+		// 结束 loading
+		$('.power-coupon').unblock()
 	})
 })(jQuery)
