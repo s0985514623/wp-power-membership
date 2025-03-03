@@ -194,8 +194,6 @@ final class View {
 		// 最後一次輸出 HTML
 
 		if (wp_doing_ajax()) {
-			// TEST 記得移除
-			\J7\WpUtils\Classes\ErrorLog::info('ajax');
 			// 這是 AJAX 請求
 			\wp_send_json($html);
 		} else {
