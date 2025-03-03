@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name:       Power Membership | 訂製版本 for 享味生活2
+ * Plugin Name:       Power Membership | 訂製版本 for 享味生活
  * Plugin URI:        https://cloud.luke.cafe/plugins/power-membership/
  * Description:       Power Membership 可以設定會員升級需要的累積消費門檻，並針對特定會員等級發放優惠，也改善介面，可輕鬆查看會員的消費總覽。
  * Version:           1.0.14
