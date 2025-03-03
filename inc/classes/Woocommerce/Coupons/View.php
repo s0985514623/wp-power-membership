@@ -38,15 +38,22 @@ final class View {
 	 */
 	public function __construct() {
 		\add_action('setup_theme', [ $this, 'init' ], 110);
+		// 增加AJAX處理
+		\add_action('init', [ $this, 'register_ajax_hooks' ]);
 	}
-
+	/**
+	 * AJAX註冊
+	 */
+	public function register_ajax_hooks(): void {
+		\add_action('wp_ajax_get_show_available_coupons', [ $this, 'show_available_coupons' ]);
+		\add_action('wp_ajax_nopriv_get_show_available_coupons', [ $this, 'show_available_coupons' ]);
+	}
 	/**
 	 * 初始化
 	 */
 	public function init(): void {
 		global $power_plugins_settings;
 		\add_action('woocommerce_before_checkout_form', [ $this, 'show_award_deduct' ], 20, 1);
-
 		if ($power_plugins_settings[ Settings::ENABLE_SHOW_AVAILABLE_COUPONS_FIELD_NAME ] ?? false) {
 			\add_action('wp_enqueue_scripts', [ $this, 'enqueue_assets' ]);
 			\add_action('woocommerce_before_checkout_form', [ $this, 'show_available_coupons' ], 10, 1);
@@ -156,23 +163,45 @@ final class View {
 		global $power_plugins_settings;
 		// var_dump($power_plugins_settings);
 		$coupons = $this->sort_coupons($coupons);
-		echo '<div class="power-coupon">';
-		echo '<h2 class="">消費滿額折扣</h2>';
-		echo '<div class="mb-2 py-2">';
-		$this->show_special_coupons($special_coupons);
+		// 開始構建 HTML
+		$html  = '<div class="power-coupon">';
+		$html .= '<h2 class="">消費滿額折扣</h2>';
+		$html .= '<div class="mb-2 py-2">';
+
+		// 添加特殊優惠券output buffering 來捕獲 `show_special_coupons` 的輸出
+		ob_start();
+		$html .= $this->show_special_coupons($special_coupons, true); // 這裡改成返回 HTML 而不是直接 `echo`
+		$html .= ob_get_clean();
+		// 迴圈加載優惠券模板
 		foreach ($coupons as $coupon) {
 			$props = $this->get_coupon_props($coupon);
+
+			// 使用 output buffering 來捕獲 `load_template` 的輸出
+			ob_start();
 			\load_template(
-						__DIR__ . '/templates/basic.php',
-						false,
-						[
-							'coupon' => $coupon,
-							'props'  => $props,
-						]
-						);
+				__DIR__ . '/templates/basic.php',
+				false,
+				[
+					'coupon' => $coupon,
+					'props'  => $props,
+				]
+			);
+			$html .= ob_get_clean();
 		}
-		echo '</div>';
-		echo '</div>';
+
+		$html .= '</div>';
+		$html .= '</div>';
+		// 最後一次輸出 HTML
+
+		if (wp_doing_ajax()) {
+			// TEST 記得移除
+			\J7\WpUtils\Classes\ErrorLog::info('ajax');
+			// 這是 AJAX 請求
+			\wp_send_json($html);
+		} else {
+			// 這是一般請求
+			echo $html;
+		}
 	}
 	/**
 	 * 顯示可用的生日禮/滿額送禮/專屬單品折扣

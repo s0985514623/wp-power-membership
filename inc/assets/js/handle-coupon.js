@@ -10,7 +10,7 @@
 		const text = '<br><span style="color:red;">⚠ 請務必選擇取貨門市<span>';
 		$('label[for^="shipping_method_0_wooecpay"]').after(text);
 	});
-	$(document).ready(function () {
+	function handleCoupon() {
 		let old_coupon = {
 			required_reward_coupon: "",
 			normal_coupon: "",
@@ -139,6 +139,11 @@
 				}
 			);
 		});
-
+	}
+	$(document).ready(function () {
+		handleCoupon()
 	});
+	$(document).on("updated_checkout", function () {
+		handleCoupon();
+	})
 })(jQuery);
